@@ -1,0 +1,84 @@
+{
+	"name": "DS_RAW_F",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_genral_blb",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"folderPath": {
+					"value": "@formatDateTime(utcNow(), 'yyyy-MM-dd')",
+					"type": "Expression"
+				},
+				"container": "raw"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "Appointment_ID",
+				"type": "String"
+			},
+			{
+				"name": "Patient_ID",
+				"type": "String"
+			},
+			{
+				"name": "Caregiver_ID",
+				"type": "String"
+			},
+			{
+				"name": "Appointment_Date",
+				"type": "String"
+			},
+			{
+				"name": "Appointment_Type",
+				"type": "String"
+			},
+			{
+				"name": "Appointment_Status",
+				"type": "String"
+			},
+			{
+				"name": "Appointment_Cost",
+				"type": "String"
+			},
+			{
+				"name": "Appointment_Location",
+				"type": "String"
+			},
+			{
+				"name": "Appointment_Provider",
+				"type": "String"
+			},
+			{
+				"name": "Appointment_Time",
+				"type": "String"
+			},
+			{
+				"name": "Appointment_Notes",
+				"type": "String"
+			},
+			{
+				"name": "Appointment_Feedback",
+				"type": "String"
+			},
+			{
+				"name": "Appointment_Doctor",
+				"type": "String"
+			},
+			{
+				"name": "Appointment_Method",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

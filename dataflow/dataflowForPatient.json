@@ -1,0 +1,59 @@
+{
+	"name": "dataflowForPatient",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Dataflow_patients",
+						"type": "DatasetReference"
+					},
+					"name": "Patient"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "Process_patients",
+						"type": "DatasetReference"
+					},
+					"name": "Patientclean"
+				}
+			],
+			"transformations": [
+				{
+					"name": "derivedColumnEmail"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          Patient_ID as string,",
+				"          First_Name as string,",
+				"          Last_Name as string,",
+				"          Gender as string,",
+				"          DOB as string,",
+				"          Phone as string,",
+				"          Address as string,",
+				"          Email as string,",
+				"          Insurance as string,",
+				"          Emergency_Contact as string,",
+				"          Language as string,",
+				"          Allergies as string,",
+				"          Primary_Caregiver as string,",
+				"          Health_History as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> Patient",
+				"Patient derive(Email = iif(endsWith(Email, '.com'), Email, Email + '.com')) ~> derivedColumnEmail",
+				"derivedColumnEmail sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['patients.csv'],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> Patientclean"
+			]
+		}
+	}
+}

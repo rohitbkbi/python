@@ -1,0 +1,65 @@
+{
+	"name": "dataflowForCaregiver",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DF_Caregivers_Phone",
+						"type": "DatasetReference"
+					},
+					"name": "Caregiver"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "Process_Caregiver",
+						"type": "DatasetReference"
+					},
+					"name": "CaregiverClean"
+				}
+			],
+			"transformations": [
+				{
+					"name": "derivedColumnPhone"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          Caregiver_ID as string,",
+				"          Name as string,",
+				"          Specialty as string,",
+				"          Phone as string,",
+				"          Email as string,",
+				"          Shift_Type as string,",
+				"          License_Number as string,",
+				"          Address as string,",
+				"          Language as string,",
+				"          Available_Hours as string,",
+				"          Ratings as string,",
+				"          Employer as string,",
+				"          Experience as string,",
+				"          Certifications as string,",
+				"          Emergency_Contact as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> Caregiver",
+				"Caregiver derive(Phone = iif(   startsWith(trim(Phone), '(+1 )'),   Phone,   '(+1 ) '     + substring(replace(replace(replace(replace(Phone, '(', ''), ')', ''), '-', ''), ' ', ''), 0, 3)     + '- '     + substring(replace(replace(replace(replace(Phone, '(', ''), ')', ''), '-', ''), ' ', ''), 3, 3)     + ' '     + substring(replace(replace(replace(replace(Phone, '(', ''), ')', ''), '-', ''), ' ', ''), 6, 4) )) ~> derivedColumnPhone",
+				"derivedColumnPhone sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          c as string,",
+				"          b as string,",
+				"          n as string",
+				"     ),",
+				"     partitionFileNames:['caregivers.csv'],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> CaregiverClean"
+			]
+		}
+	}
+}

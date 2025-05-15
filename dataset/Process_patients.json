@@ -1,0 +1,31 @@
+{
+	"name": "Process_patients",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_genral_blb",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": {
+					"value": "patients.csv",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@formatDateTime(utcNow(), 'yyyy-MM-dd')\n",
+					"type": "Expression"
+				},
+				"container": "process"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

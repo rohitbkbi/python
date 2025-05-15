@@ -1,0 +1,57 @@
+{
+	"name": "DS_Json_RAW",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureBlobStorage2",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "DIM_GEOGRAPHY.json",
+				"folderPath": {
+					"value": "@formatDateTime(utcNow(), 'yyyy-MM-dd')",
+					"type": "Expression"
+				},
+				"container": "raw"
+			}
+		},
+		"schema": {
+			"type": "object",
+			"properties": {
+				"error": {
+					"type": "boolean"
+				},
+				"msg": {
+					"type": "string"
+				},
+				"data": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"properties": {
+							"iso2": {
+								"type": "string"
+							},
+							"iso3": {
+								"type": "string"
+							},
+							"country": {
+								"type": "string"
+							},
+							"cities": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

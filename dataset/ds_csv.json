@@ -1,0 +1,27 @@
+{
+	"name": "ds_csv",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_genral_blb",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"folderPath": {
+					"value": "@formatDateTime(utcNow(), 'yyyy-MM-dd')",
+					"type": "Expression"
+				},
+				"container": "process"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

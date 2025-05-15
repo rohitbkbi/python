@@ -1,0 +1,133 @@
+{
+	"name": "pl_BlobToSnowflake",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get Filenames",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ProcessCSVFiles",
+						"type": "DatasetReference",
+						"parameters": {
+							"file_name": " ",
+							"folder_path": "@formatDateTime(utcNow(), 'yyyy-MM-dd')"
+						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobStorageReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "InsertDataintoSnowflakeTable",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Filenames",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get Filenames').output.childItems",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "Copy CSVToSnowflakeGold",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobStorageReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "SnowflakeV2Sink",
+									"preCopyScript": {
+										"value": "@concat('TRUNCATE TABLE DW_GOLD.GOLD_LAYER.', toUpper(replace(replace(item().name, '.csv', ''), '''', '')), ';')",
+										"type": "Expression"
+									},
+									"importSettings": {
+										"type": "SnowflakeImportCopyCommand"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "ProcessCSVFiles",
+									"type": "DatasetReference",
+									"parameters": {
+										"file_name": {
+											"value": "@item().name",
+											"type": "Expression"
+										},
+										"folder_path": "@formatDateTime(utcNow(), 'yyyy-MM-dd')"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "SnowflakeDataset",
+									"type": "DatasetReference",
+									"parameters": {
+										"Tablename": {
+											"value": "@toUpper(replace(replace(item().name, '.csv', ''), '''', ''))",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		"variables": {
+			"Tablename": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-05-14T07:24:37Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

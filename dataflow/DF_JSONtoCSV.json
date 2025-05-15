@@ -1,0 +1,79 @@
+{
+	"name": "DF_JSONtoCSV",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Json_RAW",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "sink_csv",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "flatten1"
+				},
+				{
+					"name": "filter1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          error as boolean,",
+				"          msg as string,",
+				"          data as (iso2 as string, iso3 as string, country as string, cities as string[])[]",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     limit: 100,",
+				"     ignoreNoFilesFound: false,",
+				"     documentForm: 'singleDocument',",
+				"     partitionBy('hash', 1)) ~> source1",
+				"source1 foldDown(unroll(data.cities, data.cities),",
+				"     mapColumn(",
+				"          iso2 = data.iso2,",
+				"          iso3 = data.iso3,",
+				"          country = data.country,",
+				"          cities = data.cities",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> flatten1",
+				"flatten1 filter(equals(country,'United States')) ~> filter1",
+				"filter1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          Appointment_ID as string,",
+				"          Patient_ID as string,",
+				"          Caregiver_ID as string,",
+				"          Appointment_Date as string,",
+				"          Appointment_Type as string,",
+				"          Appointment_Status as string,",
+				"          Appointment_Cost as string,",
+				"          Appointment_Location as string,",
+				"          Appointment_Provider as string,",
+				"          Appointment_Time as string,",
+				"          Appointment_Notes as string,",
+				"          Appointment_Feedback as string,",
+				"          Appointment_Doctor as string,",
+				"          Appointment_Method as string",
+				"     ),",
+				"     partitionFileNames:['DIM_GEOGRAPHY.csv'],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> sink1"
+			]
+		}
+	}
+}

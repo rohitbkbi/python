@@ -1,0 +1,24 @@
+{
+	"name": "ds_Json",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_genral_blb",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "*.json",
+				"folderPath": {
+					"value": "@formatDateTime(utcNow(), 'yyyy-MM-dd')",
+					"type": "Expression"
+				},
+				"container": "raw"
+			}
+		},
+		"schema": {}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

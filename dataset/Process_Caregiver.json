@@ -1,0 +1,44 @@
+{
+	"name": "Process_Caregiver",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_genral_blb",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": {
+					"value": "Caregivers.csv",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@formatDateTime(utcNow(), 'yyyy-MM-dd')\n",
+					"type": "Expression"
+				},
+				"container": "process"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "c",
+				"type": "String"
+			},
+			{
+				"name": "b",
+				"type": "String"
+			},
+			{
+				"name": "n",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

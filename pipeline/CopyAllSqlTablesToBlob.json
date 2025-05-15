@@ -1,0 +1,187 @@
+{
+	"name": "CopyAllSqlTablesToBlob",
+	"properties": {
+		"activities": [
+			{
+				"name": "GetTableList",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "runTimestamp",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT ST.name AS TableName, SS.name AS SchemaName\nFROM SYS.TABLES ST\nINNER JOIN SYS.SCHEMAS SS ON ST.schema_id = SS.schema_id\nWHERE SS.name = 'care_management';",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_SSMS",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "'dummy'",
+							"SchemaName": "'dummy'"
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "LoopOverTables",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "GetTableList",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('GetTableList').output.value\n",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "CopySingleTable",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobStorageWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_SSMS",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": {
+											"value": "@item().TableName",
+											"type": "Expression"
+										},
+										"SchemaName": "care_management"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "Azureblobtables",
+									"type": "DatasetReference",
+									"parameters": {
+										"fileName": {
+											"value": "@concat(item().TableName, '.csv')",
+											"type": "Expression"
+										},
+										"folderPath": {
+											"value": "@variables('runTimestamp')\n",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			},
+			{
+				"name": "runTimestamp",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "runTimestamp",
+					"value": {
+						"value": "@formatDateTime(utcNow(), 'yyyy-MM-dd')\n",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "fetch_and_store_country_details",
+				"type": "AzureFunctionActivity",
+				"dependsOn": [
+					{
+						"activity": "LoopOverTables",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"functionName": "fetch_country_details",
+					"method": "GET"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_geofunctions",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"variables": {
+			"runTimestamp": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-05-13T09:47:35Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

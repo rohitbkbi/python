@@ -1,0 +1,9 @@
+{
+	"name": "HomehealthDF",
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "c5c3a21e-6892-4a04-9235-cc69e2188f91",
+		"tenantId": "74fd83b5-a2b4-4b03-82ee-31f19d31d4e9"
+	}
+}
