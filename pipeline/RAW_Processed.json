@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Copy Data RAW_Processed",
+				"name": "Copy data RAW_Processed",
 				"type": "Copy",
 				"dependsOn": [
 					{
@@ -13,7 +13,7 @@
 						]
 					},
 					{
-						"activity": "Data flow JSONToCSV",
+						"activity": "Data flow CSVToJSON",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -106,10 +106,7 @@
 						"coreCount": 8,
 						"computeType": "General"
 					},
-					"traceLevel": "None",
-					"cacheSinks": {
-						"firstRowOnly": true
-					}
+					"traceLevel": "Fine"
 				}
 			},
 			{
@@ -133,14 +130,11 @@
 						"coreCount": 8,
 						"computeType": "General"
 					},
-					"traceLevel": "None",
-					"cacheSinks": {
-						"firstRowOnly": true
-					}
+					"traceLevel": "Fine"
 				}
 			},
 			{
-				"name": "Data flow JSONToCSV",
+				"name": "Data flow CSVToJSON",
 				"type": "ExecuteDataFlow",
 				"dependsOn": [],
 				"policy": {
@@ -160,15 +154,48 @@
 						"coreCount": 8,
 						"computeType": "General"
 					},
-					"traceLevel": "None",
-					"cacheSinks": {
-						"firstRowOnly": true
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "UpdateFlagforRAW_Processed",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Copy data RAW_Processed",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SnowflakeV2Source",
+						"query": "UPDATE DW_GOLD.GOLD_LAYER.PIPELINELOGAUTOMATION \nSET PROCESSED_FLAG = 'Yes' WHERE PIPELINE_ID = 2\nAND PIPELINE_NAME = 'RAW_Processed';",
+						"exportSettings": {
+							"type": "SnowflakeExportCopyCommand"
+						}
+					},
+					"dataset": {
+						"referenceName": "SnowflakeDataset",
+						"type": "DatasetReference",
+						"parameters": {
+							"Tablename": "PIPELINELOGAUTOMATION"
+						}
 					}
 				}
 			}
 		],
 		"annotations": [],
-		"lastPublishTime": "2025-05-14T10:00:45Z"
+		"lastPublishTime": "2025-05-19T09:19:38Z"
 	},
 	"type": "Microsoft.DataFactory/factories/pipelines"
 }

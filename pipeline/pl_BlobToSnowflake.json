@@ -119,6 +119,42 @@
 						}
 					]
 				}
+			},
+			{
+				"name": "UpdateFlagforpl_BlobToSnowflake",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "InsertDataintoSnowflakeTable",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SnowflakeV2Source",
+						"query": "UPDATE DW_GOLD.GOLD_LAYER.PIPELINELOGAUTOMATION \nSET PROCESSED_FLAG = 'Yes' WHERE PIPELINE_ID = 3\nAND PIPELINE_NAME = 'pl_BlobToSnowflake';",
+						"exportSettings": {
+							"type": "SnowflakeExportCopyCommand"
+						}
+					},
+					"dataset": {
+						"referenceName": "SnowflakeDataset",
+						"type": "DatasetReference",
+						"parameters": {
+							"Tablename": "PIPELINELOGAUTOMATION"
+						}
+					}
+				}
 			}
 		],
 		"variables": {
@@ -127,7 +163,7 @@
 			}
 		},
 		"annotations": [],
-		"lastPublishTime": "2025-05-14T07:24:37Z"
+		"lastPublishTime": "2025-05-19T09:19:38Z"
 	},
 	"type": "Microsoft.DataFactory/factories/pipelines"
 }

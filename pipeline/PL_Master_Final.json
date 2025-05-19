@@ -1,0 +1,331 @@
+{
+	"name": "PL_Master_Final",
+	"properties": {
+		"activities": [
+			{
+				"name": "ExecCheckFlagforCopyAllSqlTablesToBlobaftercheckingflag",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "CheckFlagforCopyAllSqlTablesToBlob",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('CheckFlagforCopyAllSqlTablesToBlob').output.firstRow.PROCESSED_FLAG, 'No')\n\n",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "ExecCopyAllSqlTablesToBlob",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "CopyAllSqlTablesToBlob",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "ExecCheckFlagforRAW_Processed",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "CheckFlagforRAW_Processed",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('CheckFlagforRAW_Processed').output.firstRow.PROCESSED_FLAG, 'No')\n",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "ExecRAW_Processed",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "RAW_Processed",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "ExecCheckFlagforpl_BlobToSnowflake",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "CheckFlagforpl_BlobToSnowflake",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('CheckFlagforpl_BlobToSnowflake').output.firstRow.PROCESSED_FLAG, 'No')\n",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Execpl_BlobToSnowflake",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_BlobToSnowflake",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "ExecCheckFlagforpl_Archive",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "CheckFlagforpl_Archive",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('CheckFlagforpl_Archive').output.firstRow.PROCESSED_FLAG, 'No')\n",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Execpl_Archive",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_Archive",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "CheckFlagforCopyAllSqlTablesToBlob",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SnowflakeV2Source",
+						"query": "SELECT PROCESSED_FLAG FROM DW_GOLD.GOLD_LAYER.PIPELINELOGAUTOMATION WHERE PIPELINE_ID = 1 AND PIPELINE_NAME = 'CopyAllSqlTablesToBlob';",
+						"exportSettings": {
+							"type": "SnowflakeExportCopyCommand"
+						}
+					},
+					"dataset": {
+						"referenceName": "SnowflakeDataset",
+						"type": "DatasetReference",
+						"parameters": {
+							"Tablename": "PIPELINELOGAUTOMATION"
+						}
+					}
+				}
+			},
+			{
+				"name": "CheckFlagforRAW_Processed",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "ExecCheckFlagforCopyAllSqlTablesToBlobaftercheckingflag",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SnowflakeV2Source",
+						"query": "SELECT PROCESSED_FLAG FROM DW_GOLD.GOLD_LAYER.PIPELINELOGAUTOMATION WHERE PIPELINE_ID = 2 AND PIPELINE_NAME = 'RAW_Processed';",
+						"exportSettings": {
+							"type": "SnowflakeExportCopyCommand"
+						}
+					},
+					"dataset": {
+						"referenceName": "SnowflakeDataset",
+						"type": "DatasetReference",
+						"parameters": {
+							"Tablename": "PIPELINELOGAUTOMATION"
+						}
+					}
+				}
+			},
+			{
+				"name": "CheckFlagforpl_BlobToSnowflake",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "ExecCheckFlagforRAW_Processed",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SnowflakeV2Source",
+						"query": "SELECT PROCESSED_FLAG FROM DW_GOLD.GOLD_LAYER.PIPELINELOGAUTOMATION WHERE PIPELINE_ID = 3 AND PIPELINE_NAME = 'pl_BlobToSnowflake';",
+						"exportSettings": {
+							"type": "SnowflakeExportCopyCommand"
+						}
+					},
+					"dataset": {
+						"referenceName": "SnowflakeDataset",
+						"type": "DatasetReference",
+						"parameters": {
+							"Tablename": "PIPELINELOGAUTOMATION"
+						}
+					}
+				}
+			},
+			{
+				"name": "CheckFlagforpl_Archive",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "ExecCheckFlagforpl_BlobToSnowflake",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SnowflakeV2Source",
+						"query": "SELECT PROCESSED_FLAG FROM DW_GOLD.GOLD_LAYER.PIPELINELOGAUTOMATION WHERE PIPELINE_ID = 4 AND PIPELINE_NAME = 'pl_Archive';",
+						"exportSettings": {
+							"type": "SnowflakeExportCopyCommand"
+						}
+					},
+					"dataset": {
+						"referenceName": "SnowflakeDataset",
+						"type": "DatasetReference",
+						"parameters": {
+							"Tablename": "PIPELINELOGAUTOMATION"
+						}
+					}
+				}
+			},
+			{
+				"name": "CheckFlagforCopyAllSqlTablesToBlob_copy1",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "ExecCheckFlagforpl_Archive",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SnowflakeV2Source",
+						"query": "UPDATE DW_GOLD.GOLD_LAYER.PIPELINELOGAUTOMATION \nSET PROCESSED_FLAG = 'No';",
+						"exportSettings": {
+							"type": "SnowflakeExportCopyCommand"
+						}
+					},
+					"dataset": {
+						"referenceName": "SnowflakeDataset",
+						"type": "DatasetReference",
+						"parameters": {
+							"Tablename": "PIPELINELOGAUTOMATION"
+						}
+					}
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2025-05-19T09:19:39Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
