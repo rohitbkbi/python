@@ -1,0 +1,45 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "HomehealthDF"
+		},
+		"AzureBlobStorage2_connectionString": {
+			"value": ""
+		},
+		"AzureSqlDatabase1_password": {
+			"value": ""
+		},
+		"Snowflake1_password": {
+			"value": ""
+		},
+		"ls_genral_blb_connectionString": {
+			"value": ""
+		},
+		"ls_geofunctions_functionKey": {
+			"value": ""
+		},
+		"AzureBlobStorage1_sasUri": {
+			"value": ""
+		},
+		"AzureSqlDatabase1_properties_typeProperties_server": {
+			"value": "homehealth-db-engine.database.windows.net"
+		},
+		"AzureSqlDatabase1_properties_typeProperties_database": {
+			"value": "HomeHealthDB"
+		},
+		"AzureSqlDatabase1_properties_typeProperties_userName": {
+			"value": "HomeHealthDB"
+		},
+		"Snowflake1_properties_typeProperties_database": {
+			"value": "DW_GOLD"
+		},
+		"Snowflake1_properties_typeProperties_host": {
+			"value": "ILGFKRG-GR24279.snowflakecomputing.com"
+		},
+		"ls_geofunctions_properties_typeProperties_functionAppUrl": {
+			"value": "https://geodatafunctions.azurewebsites.net"
+		}
+	}
+}

@@ -1,0 +1,1293 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "HomehealthDF"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_csv')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_genral_blb",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"folderPath": {
+							"value": "@formatDateTime(utcNow(), 'yyyy-MM-dd')",
+							"type": "Expression"
+						},
+						"container": "process"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/sink_csv')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_genral_blb",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"folderPath": {
+							"value": "@formatDateTime(utcNow(), 'yyyy-MM-dd')",
+							"type": "Expression"
+						},
+						"container": "raw"
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\r\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "Appointment_ID",
+						"type": "String"
+					},
+					{
+						"name": "Patient_ID",
+						"type": "String"
+					},
+					{
+						"name": "Caregiver_ID",
+						"type": "String"
+					},
+					{
+						"name": "Appointment_Date",
+						"type": "String"
+					},
+					{
+						"name": "Appointment_Type",
+						"type": "String"
+					},
+					{
+						"name": "Appointment_Status",
+						"type": "String"
+					},
+					{
+						"name": "Appointment_Cost",
+						"type": "String"
+					},
+					{
+						"name": "Appointment_Location",
+						"type": "String"
+					},
+					{
+						"name": "Appointment_Provider",
+						"type": "String"
+					},
+					{
+						"name": "Appointment_Time",
+						"type": "String"
+					},
+					{
+						"name": "Appointment_Notes",
+						"type": "String"
+					},
+					{
+						"name": "Appointment_Feedback",
+						"type": "String"
+					},
+					{
+						"name": "Appointment_Doctor",
+						"type": "String"
+					},
+					{
+						"name": "Appointment_Method",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/CopyAllSqlTablesToBlob')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "GetTableList",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "runTimestamp",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "SELECT ST.name AS TableName, SS.name AS SchemaName\nFROM SYS.TABLES ST\nINNER JOIN SYS.SCHEMAS SS ON ST.schema_id = SS.schema_id\nWHERE SS.name = 'care_management';",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "ds_SSMS",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "'dummy'",
+									"SchemaName": "'dummy'"
+								}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "LoopOverTables",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "GetTableList",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('GetTableList').output.value\n",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "CopySingleTable",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobStorageWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_SSMS",
+											"type": "DatasetReference",
+											"parameters": {
+												"TableName": {
+													"value": "@item().TableName",
+													"type": "Expression"
+												},
+												"SchemaName": "care_management"
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "Azureblobtables",
+											"type": "DatasetReference",
+											"parameters": {
+												"fileName": {
+													"value": "@concat(item().TableName, '.csv')",
+													"type": "Expression"
+												},
+												"folderPath": {
+													"value": "@variables('runTimestamp')\n",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					},
+					{
+						"name": "runTimestamp",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "runTimestamp",
+							"value": {
+								"value": "@formatDateTime(utcNow(), 'yyyy-MM-dd')\n",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "fetch_and_store_country_details",
+						"type": "AzureFunctionActivity",
+						"dependsOn": [
+							{
+								"activity": "LoopOverTables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"functionName": "fetch_country_details",
+							"headers": {},
+							"method": "GET"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_geofunctions",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"runTimestamp": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-05-13T09:47:35Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_Archive')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "CopyRawtoArchive",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"wildcardFolderPath": {
+										"value": "@formatDateTime(utcNow(), 'yyyy-MM-dd')",
+										"type": "Expression"
+									},
+									"wildcardFileName": "*",
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": ".csv"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ArchiveCopyDataset",
+								"type": "DatasetReference",
+								"parameters": {
+									"ContainerName": "raw",
+									"FolderName": "@formatDateTime(utcNow(), 'yyyy-MM-dd')"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ArchiveCopyDataset",
+								"type": "DatasetReference",
+								"parameters": {
+									"ContainerName": "archive",
+									"FolderName": "@concat('RAW/', formatDateTime(utcNow(), 'yyyy-MM-dd'))"
+								}
+							}
+						]
+					},
+					{
+						"name": "CopyProcesstoArchive",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"wildcardFolderPath": {
+										"value": "@formatDateTime(utcNow(), 'yyyy-MM-dd')",
+										"type": "Expression"
+									},
+									"wildcardFileName": "*",
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": ".csv"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ArchiveCopyDataset",
+								"type": "DatasetReference",
+								"parameters": {
+									"ContainerName": "process",
+									"FolderName": "@formatDateTime(utcNow(), 'yyyy-MM-dd')"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ArchiveCopyDataset",
+								"type": "DatasetReference",
+								"parameters": {
+									"ContainerName": "archive",
+									"FolderName": {
+										"value": "@concat('PROCESS/', formatDateTime(utcNow(), 'yyyy-MM-dd'))",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "DeleteRawFolder",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "DeleteRawFiles",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ArchiveDeleteDataset",
+								"type": "DatasetReference",
+								"parameters": {
+									"ContainerName": "raw"
+								}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobStorageReadSettings",
+								"recursive": true,
+								"wildcardFileName": "*",
+								"enablePartitionDiscovery": false
+							}
+						}
+					},
+					{
+						"name": "DeleteProcessFolder",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "DeleteProcessFiles",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ArchiveDeleteDataset",
+								"type": "DatasetReference",
+								"parameters": {
+									"ContainerName": "process"
+								}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobStorageReadSettings",
+								"recursive": true,
+								"wildcardFileName": "*",
+								"enablePartitionDiscovery": false
+							}
+						}
+					},
+					{
+						"name": "DeleteRawFiles",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "CopyRawtoArchive",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ArchiveCopyDataset",
+								"type": "DatasetReference",
+								"parameters": {
+									"ContainerName": "raw",
+									"FolderName": "@formatDateTime(utcNow(), 'yyyy-MM-dd')"
+								}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobStorageReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							}
+						}
+					},
+					{
+						"name": "DeleteProcessFiles",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "CopyProcesstoArchive",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ArchiveCopyDataset",
+								"type": "DatasetReference",
+								"parameters": {
+									"ContainerName": "process",
+									"FolderName": "@formatDateTime(utcNow(), 'yyyy-MM-dd')"
+								}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobStorageReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-05-14T07:41:17Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_BlobToSnowflake')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get Filenames",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ProcessCSVFiles",
+								"type": "DatasetReference",
+								"parameters": {
+									"file_name": " ",
+									"folder_path": "@formatDateTime(utcNow(), 'yyyy-MM-dd')"
+								}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "AzureBlobStorageReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
+							}
+						}
+					},
+					{
+						"name": "InsertDataintoSnowflakeTable",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Get Filenames",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get Filenames').output.childItems",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"activities": [
+								{
+									"name": "Copy CSVToSnowflakeGold",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "AzureBlobStorageReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "SnowflakeV2Sink",
+											"preCopyScript": {
+												"value": "@concat('TRUNCATE TABLE DW_GOLD.GOLD_LAYER.', toUpper(replace(replace(item().name, '.csv', ''), '''', '')), ';')",
+												"type": "Expression"
+											},
+											"importSettings": {
+												"type": "SnowflakeImportCopyCommand"
+											}
+										},
+										"enableStaging": false
+									},
+									"inputs": [
+										{
+											"referenceName": "ProcessCSVFiles",
+											"type": "DatasetReference",
+											"parameters": {
+												"file_name": {
+													"value": "@item().name",
+													"type": "Expression"
+												},
+												"folder_path": "@formatDateTime(utcNow(), 'yyyy-MM-dd')"
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SnowflakeDataset",
+											"type": "DatasetReference",
+											"parameters": {
+												"Tablename": {
+													"value": "@toUpper(replace(replace(item().name, '.csv', ''), '''', ''))",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"Tablename": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-05-14T07:24:37Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_JSONtoCSV')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Json_RAW",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "sink_csv",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "flatten1"
+						},
+						{
+							"name": "filter1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          error as boolean,",
+						"          msg as string,",
+						"          data as (iso2 as string, iso3 as string, country as string, cities as string[])[]",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     limit: 100,",
+						"     ignoreNoFilesFound: false,",
+						"     documentForm: 'singleDocument',",
+						"     partitionBy('hash', 1)) ~> source1",
+						"source1 foldDown(unroll(data.cities, data.cities),",
+						"     mapColumn(",
+						"          iso2 = data.iso2,",
+						"          iso3 = data.iso3,",
+						"          country = data.country,",
+						"          cities = data.cities",
+						"     ),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> flatten1",
+						"flatten1 filter(equals(country,'United States')) ~> filter1",
+						"filter1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          Appointment_ID as string,",
+						"          Patient_ID as string,",
+						"          Caregiver_ID as string,",
+						"          Appointment_Date as string,",
+						"          Appointment_Type as string,",
+						"          Appointment_Status as string,",
+						"          Appointment_Cost as string,",
+						"          Appointment_Location as string,",
+						"          Appointment_Provider as string,",
+						"          Appointment_Time as string,",
+						"          Appointment_Notes as string,",
+						"          Appointment_Feedback as string,",
+						"          Appointment_Doctor as string,",
+						"          Appointment_Method as string",
+						"     ),",
+						"     partitionFileNames:['DIM_GEOGRAPHY.csv'],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/sink_csv')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dataflowForCaregiver')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DF_Caregivers_Phone",
+								"type": "DatasetReference"
+							},
+							"name": "Caregiver"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "Process_Caregiver",
+								"type": "DatasetReference"
+							},
+							"name": "CaregiverClean"
+						}
+					],
+					"transformations": [
+						{
+							"name": "derivedColumnPhone"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          Caregiver_ID as string,",
+						"          Name as string,",
+						"          Specialty as string,",
+						"          Phone as string,",
+						"          Email as string,",
+						"          Shift_Type as string,",
+						"          License_Number as string,",
+						"          Address as string,",
+						"          Language as string,",
+						"          Available_Hours as string,",
+						"          Ratings as string,",
+						"          Employer as string,",
+						"          Experience as string,",
+						"          Certifications as string,",
+						"          Emergency_Contact as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> Caregiver",
+						"Caregiver derive(Phone = iif(   startsWith(trim(Phone), '(+1 )'),   Phone,   '(+1 ) '     + substring(replace(replace(replace(replace(Phone, '(', ''), ')', ''), '-', ''), ' ', ''), 0, 3)     + '- '     + substring(replace(replace(replace(replace(Phone, '(', ''), ')', ''), '-', ''), ' ', ''), 3, 3)     + ' '     + substring(replace(replace(replace(replace(Phone, '(', ''), ')', ''), '-', ''), ' ', ''), 6, 4) )) ~> derivedColumnPhone",
+						"derivedColumnPhone sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          c as string,",
+						"          b as string,",
+						"          n as string",
+						"     ),",
+						"     partitionFileNames:['caregivers.csv'],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> CaregiverClean"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dataflowForPatient')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Dataflow_patients",
+								"type": "DatasetReference"
+							},
+							"name": "Patient"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "Process_patients",
+								"type": "DatasetReference"
+							},
+							"name": "Patientclean"
+						}
+					],
+					"transformations": [
+						{
+							"name": "derivedColumnEmail"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          Patient_ID as string,",
+						"          First_Name as string,",
+						"          Last_Name as string,",
+						"          Gender as string,",
+						"          DOB as string,",
+						"          Phone as string,",
+						"          Address as string,",
+						"          Email as string,",
+						"          Insurance as string,",
+						"          Emergency_Contact as string,",
+						"          Language as string,",
+						"          Allergies as string,",
+						"          Primary_Caregiver as string,",
+						"          Health_History as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> Patient",
+						"Patient derive(Email = iif(endsWith(Email, '.com'), Email, Email + '.com')) ~> derivedColumnEmail",
+						"derivedColumnEmail sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     partitionFileNames:['patients.csv'],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> Patientclean"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/RAW_Processed')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy Data RAW_Processed",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Data flow Patients",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Data flow CSVToJSON",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Data flow Caregivers",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"wildcardFolderPath": {
+										"value": "@formatDateTime(utcNow(), 'yyyy-MM-dd')",
+										"type": "Expression"
+									},
+									"wildcardFileName": "*.csv",
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings",
+									"copyBehavior": "PreserveHierarchy"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": ".txt"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_RAW_F",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_Processed",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Data flow Patients",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "dataflowForPatient",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"Patient": {},
+									"Patientclean": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "None",
+							"cacheSinks": {
+								"firstRowOnly": true
+							}
+						}
+					},
+					{
+						"name": "Data flow Caregivers",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "dataflowForCaregiver",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"Caregiver": {},
+									"CaregiverClean": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "None",
+							"cacheSinks": {
+								"firstRowOnly": true
+							}
+						}
+					},
+					{
+						"name": "Data flow CSVToJSON",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_JSONtoCSV",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "None",
+							"cacheSinks": {
+								"firstRowOnly": true
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-05-14T10:00:45Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/dataflowForPatient')]",
+				"[concat(variables('factoryId'), '/dataflows/dataflowForCaregiver')]",
+				"[concat(variables('factoryId'), '/dataflows/DF_JSONtoCSV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_Master')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "pl_SourceToBlob",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "CopyAllSqlTablesToBlob",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "pl_RawToProcessed",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "pl_SourceToBlob",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "RAW_Processed",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "pl_BlbToSnowflake",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "pl_RawToProcessed",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_BlobToSnowflake",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "Execute PL_Archive",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "pl_BlbToSnowflake",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_Archive",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-05-13T10:39:41Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/CopyAllSqlTablesToBlob')]",
+				"[concat(variables('factoryId'), '/pipelines/RAW_Processed')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_BlobToSnowflake')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_Archive')]"
+			]
+		}
+	]
+}
