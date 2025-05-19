@@ -994,7 +994,7 @@
 								]
 							},
 							{
-								"activity": "Data flow CSVToJSON",
+								"activity": "Data flow JSONToCSV",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -1135,7 +1135,7 @@
 						}
 					},
 					{
-						"name": "Data flow CSVToJSON",
+						"name": "Data flow JSONToCSV",
 						"type": "ExecuteDataFlow",
 						"dependsOn": [],
 						"policy": {
