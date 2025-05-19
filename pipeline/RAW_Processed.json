@@ -3,23 +3,23 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Copy data1",
+				"name": "Copy Data RAW_Processed",
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "Data flow1",
+						"activity": "Data flow Patients",
 						"dependencyConditions": [
 							"Succeeded"
 						]
 					},
 					{
-						"activity": "Data flow2_copy1",
+						"activity": "Data flow CSVToJSON",
 						"dependencyConditions": [
 							"Succeeded"
 						]
 					},
 					{
-						"activity": "Data flow2",
+						"activity": "Data flow Caregivers",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -86,7 +86,7 @@
 				]
 			},
 			{
-				"name": "Data flow1",
+				"name": "Data flow Patients",
 				"type": "ExecuteDataFlow",
 				"dependsOn": [],
 				"policy": {
@@ -113,7 +113,7 @@
 				}
 			},
 			{
-				"name": "Data flow2",
+				"name": "Data flow Caregivers",
 				"type": "ExecuteDataFlow",
 				"dependsOn": [],
 				"policy": {
@@ -140,7 +140,7 @@
 				}
 			},
 			{
-				"name": "Data flow2_copy1",
+				"name": "Data flow CSVToJSON",
 				"type": "ExecuteDataFlow",
 				"dependsOn": [],
 				"policy": {
