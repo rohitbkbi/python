@@ -1,5 +1,5 @@
 {
-	"name": "ls_SNOWFLAKE_SOURCE",
+	"name": "LS_SNOWFLAKE_SOURCE",
 	"type": "Microsoft.DataFactory/factories/linkedservices",
 	"properties": {
 		"annotations": [],
